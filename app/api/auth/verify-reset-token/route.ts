@@ -5,8 +5,9 @@ const prisma = new PrismaClient();
 
 export async function GET(req: NextRequest) {
   try {
-    const token = req.nextUrl.searchParams.get('token');
-
+    const searchParams = req.nextUrl.searchParams;
+    const token = searchParams.get('token');
+    
     if (!token) {
       return NextResponse.json({ valid: false, message: 'Token is required' }, { status: 400 });
     }
@@ -22,13 +23,10 @@ export async function GET(req: NextRequest) {
     });
 
     if (!resetToken) {
-      return NextResponse.json(
-        { valid: false, message: 'Invalid or expired token' },
-        { status: 400 }
-      );
+      return NextResponse.json({ valid: false, message: 'Invalid or expired token' }, { status: 400 });
     }
 
-    return NextResponse.json({ valid: true });
+    return NextResponse.json({ valid: true, message: 'Token is valid' });
   } catch (error: any) {
     console.error('Token verification error:', error);
     return NextResponse.json(
