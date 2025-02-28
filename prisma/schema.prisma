@@ -81,7 +81,8 @@ model Student {
   department      String
   registrations   Registration[]
   attendance      Attendance[]
-  gradeRecords    GradeRecord[] // Student's grade records
+  gradeRecords    GradeRecord[] // Student's grade record
+  s
   submissions     Submission[]  // Add this relation for Submission model
 }
 
