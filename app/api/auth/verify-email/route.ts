@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { redirect } from 'next/navigation';
 
 const prisma = new PrismaClient();
 
 export async function GET(req: NextRequest) {
   try {
-    const searchParams = req.nextUrl.searchParams;
+    const { searchParams } = new URL(req.url);
     const token = searchParams.get('token');
     
     if (!token) {
-      return NextResponse.json({ message: 'Invalid token' }, { status: 400 });
+      return NextResponse.json({ message: 'Token is required' }, { status: 400 });
     }
-    
+
     // Find the verification token
     const verificationToken = await prisma.verificationToken.findFirst({
       where: {
@@ -22,33 +21,45 @@ export async function GET(req: NextRequest) {
         },
       },
     });
-    
+
     if (!verificationToken) {
-      return NextResponse.redirect(new URL('/verification-failed', req.url));
+      return NextResponse.json(
+        { message: 'Invalid or expired token' },
+        { status: 400 }
+      );
     }
-    
-    // Update the user's emailVerified status
-    await prisma.user.updateMany({
-      where: {
-        email: verificationToken.identifier,
-      },
-      data: {
-        emailVerified: true,
-      },
+
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email: verificationToken.identifier },
     });
-    
-    // Delete the verification token
+
+    if (!user) {
+      return NextResponse.json(
+        { message: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // Mark email as verified
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerified: true },
+    });
+
+    // Delete the used token
     await prisma.verificationToken.delete({
-      where: {
-        id: verificationToken.id,
-      },
+      where: { id: verificationToken.id },
     });
-    
-    // Redirect to verification success page
+
+    // Redirect to the verification success page
     return NextResponse.redirect(new URL('/verification-success', req.url));
   } catch (error: any) {
     console.error('Email verification error:', error);
-    return NextResponse.redirect(new URL('/verification-failed', req.url));
+    return NextResponse.json(
+      { message: 'Failed to verify email' },
+      { status: 500 }
+    );
   } finally {
     await prisma.$disconnect();
   }

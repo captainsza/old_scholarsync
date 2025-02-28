@@ -72,17 +72,45 @@ model Faculty {
   courses       Course[]      // Add this relation for courses taught by faculty
 }
 
-// Student model (Student-specific data)
+// Student model (Student-specific data with enhanced fields)
 model Student {
-  id              String        @id @default(auto()) @map("_id") @db.ObjectId
-  userId          String        @unique @db.ObjectId
-  user            User          @relation("StudentUser", fields: [userId], references: [id])
-  enrollmentId    String        @unique
-  department      String
-  registrations   Registration[]
-  attendance      Attendance[]
-  gradeRecords    GradeRecord[] // Student's grade records
-  submissions     Submission[]  // Add this relation for Submission model
+  id                String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String        @unique @db.ObjectId
+  user              User          @relation("StudentUser", fields: [userId], references: [id])
+  enrollmentId      String        @unique
+  department        String
+  
+  // Personal details
+  gender            String?       // Added field
+  dob               DateTime?     // Added field
+  bloodGroup        String?       // Added field
+  
+  // Family information
+  fatherName        String?       // Added field
+  motherName        String?       // Added field
+  
+  // Academic information
+  admissionSession  String?       // Added field
+  admissionSemester String?       // Added field
+  academicStatus    String?       // Added field
+  instituteCode     String?       // Added field
+  instituteName     String?       // Added field
+  courseName        String?       // Added field
+  branchName        String?       // Added field
+  currentSemester   String?       // Added field
+  
+  // Contact details
+  address           String?       // Added field
+  city              String?       // Added field
+  state             String?       // Added field
+  country           String?       @default("India") // Added field
+  pincode           String?       // Added field
+  
+  // Relationships
+  registrations     Registration[]
+  attendance        Attendance[]
+  gradeRecords      GradeRecord[] 
+  submissions       Submission[]
 }
 
 // Approval model (For admin to approve faculty/student registrations)

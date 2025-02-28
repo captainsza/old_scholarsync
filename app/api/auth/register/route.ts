@@ -9,7 +9,34 @@ const prisma = new PrismaClient();
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
-    const { email, password, role, firstName, lastName, phone, department, enrollmentId } = data;
+    const { 
+      // Basic auth info
+      email, password, role, 
+      
+      // Profile info
+      firstName, lastName, phone, department,
+      
+      // Student-specific information
+      enrollmentId,
+      gender,
+      dob,
+      bloodGroup,
+      fatherName,
+      motherName,
+      admissionSession,
+      admissionSemester,
+      academicStatus,
+      instituteCode,
+      instituteName,
+      courseName,
+      branchName,
+      currentSemester,
+      address,
+      city,
+      state,
+      country,
+      pincode
+    } = data;
     
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -21,6 +48,20 @@ export async function POST(req: NextRequest) {
         { message: 'User with this email already exists' }, 
         { status: 400 }
       );
+    }
+    
+    // If student role, check if enrollment ID already exists
+    if (role === 'STUDENT' && enrollmentId) {
+      const existingStudent = await prisma.student.findUnique({
+        where: { enrollmentId },
+      });
+      
+      if (existingStudent) {
+        return NextResponse.json(
+          { message: 'Student with this enrollment ID already exists' }, 
+          { status: 400 }
+        );
+      }
     }
     
     // Hash the password
@@ -56,11 +97,33 @@ export async function POST(req: NextRequest) {
 
       // Create role-specific record
       if (role === 'STUDENT') {
+        // Parse date of birth if provided
+        const parsedDob = dob ? new Date(dob) : undefined;
+        
         await prisma.student.create({
           data: {
             userId: user.id,
             department,
-            enrollmentId, 
+            enrollmentId,
+            // Add enhanced student fields
+            gender,
+            dob: parsedDob,
+            bloodGroup,
+            fatherName,
+            motherName,
+            admissionSession,
+            admissionSemester,
+            academicStatus,
+            instituteCode,
+            instituteName,
+            courseName,
+            branchName,
+            currentSemester,
+            address,
+            city,
+            state,
+            country,
+            pincode
           },
         });
       } else if (role === 'FACULTY') {

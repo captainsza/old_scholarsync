@@ -10,20 +10,20 @@ export async function POST(req: NextRequest) {
     const { email } = await req.json();
 
     if (!email) {
-      return NextResponse.json({ message: 'Email is required' }, { status: 400 });
+      return NextResponse.json(
+        { message: 'Email is required' },
+        { status: 400 }
+      );
     }
 
-    // Find user by email
+    // Check if user exists
     const user = await prisma.user.findUnique({
       where: { email },
     });
 
-    // Don't reveal if user exists for security reasons
-    // Still return a success message even if user doesn't exist
+    // Always return success even if user doesn't exist for security reasons
     if (!user) {
-      return NextResponse.json({ 
-        message: 'If an account with that email exists, we have sent password reset instructions.'
-      });
+      return NextResponse.json({ message: 'If your email is registered, you will receive a password reset link.' });
     }
 
     // Generate reset token
@@ -31,13 +31,7 @@ export async function POST(req: NextRequest) {
     const tokenExpiry = new Date();
     tokenExpiry.setHours(tokenExpiry.getHours() + 1); // Token valid for 1 hour
 
-    // Store reset token in database
-    // First check if there's an existing token and delete it
-    await prisma.passwordResetToken.deleteMany({
-      where: { identifier: email },
-    });
-
-    // Create new token
+    // Store token in database
     await prisma.passwordResetToken.create({
       data: {
         identifier: email,
@@ -46,29 +40,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    try {
-      // Send password reset email
-      await sendPasswordResetEmail(email, resetToken);
-    } catch (emailError) {
-      console.error('Failed to send password reset email:', emailError);
-      
-      // In development, we'll still return success as the token is created
-      // In production, we should handle this more carefully
-      if (process.env.NODE_ENV === 'production') {
-        return NextResponse.json(
-          { message: 'Failed to send reset email. Please try again later.' },
-          { status: 500 }
-        );
-      }
-    }
+    // Send password reset email
+    await sendPasswordResetEmail(email, resetToken);
 
-    return NextResponse.json({ 
-      message: 'If an account with that email exists, we have sent password reset instructions.'
-    });
+    return NextResponse.json({ message: 'If your email is registered, you will receive a password reset link.' });
   } catch (error: any) {
-    console.error('Forgot password error:', error);
+    console.error('Password reset request error:', error);
     return NextResponse.json(
-      { message: 'Failed to process request' },
+      { message: 'Failed to process password reset request' },
       { status: 500 }
     );
   } finally {
